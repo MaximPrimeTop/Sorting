@@ -44,6 +44,10 @@ namespace Sort {
 	private: System::Windows::Forms::Label^ labelIndex;
 	private: System::Windows::Forms::Timer^ MoveTimer;
 	private: System::Windows::Forms::ListBox^ listBox1;
+	private: System::Windows::Forms::Button^ buttonAutoSort;
+	private: System::Windows::Forms::NumericUpDown^ numberAmount;
+
+
 	private: System::ComponentModel::IContainer^ components;
 
 
@@ -79,13 +83,16 @@ namespace Sort {
 			this->labelIndex = (gcnew System::Windows::Forms::Label());
 			this->MoveTimer = (gcnew System::Windows::Forms::Timer(this->components));
 			this->listBox1 = (gcnew System::Windows::Forms::ListBox());
+			this->buttonAutoSort = (gcnew System::Windows::Forms::Button());
+			this->numberAmount = (gcnew System::Windows::Forms::NumericUpDown());
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->numberAmount))->BeginInit();
 			this->SuspendLayout();
 			// 
 			// button1
 			// 
-			this->button1->Location = System::Drawing::Point(12, 460);
+			this->button1->Location = System::Drawing::Point(12, 489);
 			this->button1->Name = L"button1";
-			this->button1->Size = System::Drawing::Size(478, 196);
+			this->button1->Size = System::Drawing::Size(348, 124);
 			this->button1->TabIndex = 1;
 			this->button1->Text = L"Generate numbers";
 			this->button1->UseVisualStyleBackColor = true;
@@ -93,16 +100,17 @@ namespace Sort {
 			// 
 			// panel1
 			// 
-			this->panel1->Location = System::Drawing::Point(146, 92);
+			this->panel1->AutoScroll = true;
+			this->panel1->Location = System::Drawing::Point(146, 66);
 			this->panel1->Name = L"panel1";
-			this->panel1->Size = System::Drawing::Size(958, 362);
+			this->panel1->Size = System::Drawing::Size(1089, 388);
 			this->panel1->TabIndex = 2;
 			// 
 			// buttonSortStep
 			// 
-			this->buttonSortStep->Location = System::Drawing::Point(795, 460);
+			this->buttonSortStep->Location = System::Drawing::Point(948, 489);
 			this->buttonSortStep->Name = L"buttonSortStep";
-			this->buttonSortStep->Size = System::Drawing::Size(350, 190);
+			this->buttonSortStep->Size = System::Drawing::Size(287, 124);
 			this->buttonSortStep->TabIndex = 3;
 			this->buttonSortStep->Text = L"Sort (one step)";
 			this->buttonSortStep->UseVisualStyleBackColor = true;
@@ -136,11 +144,32 @@ namespace Sort {
 			this->listBox1->TabIndex = 5;
 			this->listBox1->SelectedIndexChanged += gcnew System::EventHandler(this, &Sorting::listBox1_SelectedIndexChanged);
 			// 
+			// buttonAutoSort
+			// 
+			this->buttonAutoSort->Location = System::Drawing::Point(490, 489);
+			this->buttonAutoSort->Name = L"buttonAutoSort";
+			this->buttonAutoSort->Size = System::Drawing::Size(338, 124);
+			this->buttonAutoSort->TabIndex = 6;
+			this->buttonAutoSort->Text = L"Sort (full)";
+			this->buttonAutoSort->UseVisualStyleBackColor = true;
+			this->buttonAutoSort->Click += gcnew System::EventHandler(this, &Sorting::button2_Click);
+			// 
+			// numberAmount
+			// 
+			this->numberAmount->Font = (gcnew System::Drawing::Font(L"Microsoft Sans Serif", 30));
+			this->numberAmount->Location = System::Drawing::Point(12, 420);
+			this->numberAmount->Name = L"numberAmount";
+			this->numberAmount->Size = System::Drawing::Size(102, 53);
+			this->numberAmount->TabIndex = 7;
+			this->numberAmount->Value = System::Decimal(gcnew cli::array< System::Int32 >(4) { 10, 0, 0, 0 });
+			// 
 			// Sorting
 			// 
 			this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
 			this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
 			this->ClientSize = System::Drawing::Size(1264, 681);
+			this->Controls->Add(this->numberAmount);
+			this->Controls->Add(this->buttonAutoSort);
 			this->Controls->Add(this->listBox1);
 			this->Controls->Add(this->labelIndex);
 			this->Controls->Add(this->buttonSortStep);
@@ -150,6 +179,7 @@ namespace Sort {
 			this->StartPosition = System::Windows::Forms::FormStartPosition::CenterScreen;
 			this->Text = L"Sorting numbers and stuff";
 			this->Load += gcnew System::EventHandler(this, &Sorting::Sorting_Load);
+			(cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->numberAmount))->EndInit();
 			this->ResumeLayout(false);
 			this->PerformLayout();
 
@@ -188,6 +218,11 @@ namespace Sort {
 				Setup();
 			}
 
+			Point GetLocation()
+			{
+				return label->Location;
+			}
+
 			void StartSwapAnimation(int newX, int y, NumberThing^ swapTarget) // if swapTarget is self it won't wait when swapping
 			{
 				targetX = newX;
@@ -196,15 +231,32 @@ namespace Sort {
 				CurrentState = AnimationState::DroppingDown;
 			}
 
-			void StartInsertionSwapAnimation(int newX, NumberThing^ swapTarget)
+			void StartInsertionSwapAnimation(NumberThing^ swapTarget)
 			{
-				targetX = newX;
+				SwapTarget = swapTarget;
+				targetX = label->Location.X + labelSizeX + 5;
 				CurrentState = AnimationState::Swapping;
 			}
 
-			void ColorNumber(Color color)
+			void SetColor(Color color)
 			{
 				label->BackColor = color;
+			}
+
+			void EndSwapAnimation()
+			{
+				CurrentState = AnimationState::Idle;
+				switch (CurrentSortType)
+				{
+					case SortType::BubbleSort:
+						SetColor(Color::White);
+						break;
+					case SortType::InsertionSort:
+						SetColor(Color::Lime);
+						break;
+					case SortType::SelectionSort:
+						break;
+				}
 			}
 
 			void Update()
@@ -234,7 +286,7 @@ namespace Sort {
 				case AnimationState::RisingUp:
 					if (label->Location.Y <= 10)
 					{
-						CurrentState = AnimationState::Idle;
+						EndSwapAnimation();
 						return;
 					}
 					label->Location = Point(label->Location.X, label->Location.Y - 5);
@@ -256,7 +308,7 @@ namespace Sort {
 		array<Label^>^ GeneratedLabels;
 		const static int labelSizeX = 70;
 		const static int labelSizeY = 50;
-
+		bool autoSorting = false;
 		enum class SortType
 		{
 			BubbleSort,
@@ -299,8 +351,11 @@ namespace Sort {
 
 		void button1_Click(System::Object^ sender, System::EventArgs^ e) 
 		{
-			GenerateNumbers(10);
+			autoSorting = false;
+			GenerateNumbers((int)numberAmount->Value);
 			CurrentSortState = SortState::Unsorted;
+			buttonAutoSort->Enabled = true;
+			buttonSortStep->Enabled = true;
 		}
 
 		int index = 0;
@@ -316,7 +371,7 @@ namespace Sort {
 		}
 		*/
 
-		void MoveTimer_Tick(System::Object^ sender, System::EventArgs^ e) 
+		void MoveTimer_Tick(System::Object^ sender, System::EventArgs^ e)
 		{
 			bool AllIdle = true;
 			if (numbers == nullptr)
@@ -327,16 +382,39 @@ namespace Sort {
 				if (numbers[i]->CurrentState != NumberThing::AnimationState::Idle)
 					AllIdle = false;
 			}
+
 			if (AllIdle)
-				buttonSortStep->Enabled = true;
-			else
-				buttonSortStep->Enabled = false;
+			{				
+				if (autoSorting)
+				{
+					if (CurrentSortState == SortState::Sorted)
+					{
+						autoSorting = false;
+						MoveTimer->Enabled = false;
+					}
+					else
+						SortStep();
+					return;
+				}
+				MoveTimer->Enabled = false;
+				if (CurrentSortState != SortState::Sorted)
+				{
+					buttonAutoSort->Enabled = true;
+					buttonSortStep->Enabled = true;
+					
+				}
+				else
+				{
+					buttonAutoSort->Enabled = false;
+					buttonSortStep->Enabled = false;
+				}
+			}
 		}
 
 		void ColorAllNumbers(Color color)
 		{
 			for (int i = 0; i < numbers->Length; i++)
-				numbers[i]->ColorNumber(color);
+				numbers[i]->SetColor(color);
 		}
 
 		void StartSwap(NumberThing^ N1, NumberThing^ N2)
@@ -344,6 +422,14 @@ namespace Sort {
 			buttonSortStep->Enabled = false;
 			N1->StartSwapAnimation(N2->label->Location.X, 70, N2);
 			N2->StartSwapAnimation(N1->label->Location.X, 120, N1);
+		}
+
+		void StartInsertionSwap(NumberThing^ N1, int left, int right)
+		{
+			buttonSortStep->Enabled = false;
+			N1->StartSwapAnimation(numbers[left]->GetLocation().X, 70, N1);
+			for (int i = left; i <= right; i++)
+				numbers[i]->StartInsertionSwapAnimation(N1);
 		}
 
 		void BubbleSortStep()
@@ -359,8 +445,8 @@ namespace Sort {
 					//numbers[i+1]->label->Location = tempLocation;
 					numbers[i] = numbers[i+1];
 					numbers[i+1] = temp;
-					numbers[i]->ColorNumber(Color::Red);
-					numbers[i + 1]->ColorNumber(Color::Red);
+					numbers[i]->SetColor(Color::Red);
+					numbers[i + 1]->SetColor(Color::Red);
 					StartSwap(numbers[i], numbers[i + 1]);
 					index = i + 1;
 					return;
@@ -376,8 +462,8 @@ namespace Sort {
 					//numbers[i + 1]->label->Location = tempLocation;
 					numbers[i] = numbers[i + 1];
 					numbers[i + 1] = temp;
-					numbers[i]->ColorNumber(Color::Red);
-					numbers[i + 1]->ColorNumber(Color::Red);
+					numbers[i]->SetColor(Color::Red);
+					numbers[i + 1]->SetColor(Color::Red);
 					StartSwap(numbers[i], numbers[i + 1]);
 					index = i + 1;
 					return;
@@ -389,29 +475,50 @@ namespace Sort {
 
 		void InsertionSortStep()
 		{
-			//however the heck insertion sort works
+			if (index == numbers->Length)
+			{
+				ColorAllNumbers(Color::Green);
+				CurrentSortState = SortState::Sorted;
+				return;
+			}
+			int i = index - 1;
+			numbers[index]->SetColor(Color::Red);
+			while(i >= 0 && numbers[i]->Value > numbers[i + 1]->Value)
+			{
+				numbers[i]->SetColor(Color::Orange);
+				NumberThing^ temp = numbers[i];
+				numbers[i] = numbers[i + 1];
+				numbers[i + 1] = temp;
+				i--;
+			}
+			if (i == index - 1)
+				for (int j = 0; j <= index; j++)
+					numbers[j]->SetColor(Color::Lime);
+			else
+				StartInsertionSwap(numbers[i + 1], i + 2, index);
+			index++;
 		}
 
 		void SelectionSortStep()
 		{
 			for (int i = 0; i < numbers->Length; i++)
 				if (i < index)
-					numbers[i]->ColorNumber(Color::White);
+					numbers[i]->SetColor(Color::White);
 				else
-					numbers[i]->ColorNumber(Color::Lime);
+					numbers[i]->SetColor(Color::Lime);
 			int maxNumIndex = 0;
 			for (int i = 1; i < index; i++)
 				if (numbers[i]->Value >= numbers[maxNumIndex]->Value)
 					maxNumIndex = i;
 			if (maxNumIndex == index - 1)
-				numbers[maxNumIndex]->ColorNumber(Color::Lime);
+				numbers[maxNumIndex]->SetColor(Color::Lime);
 			else
 			{
 				NumberThing^ temp = numbers[maxNumIndex];
 				numbers[maxNumIndex] = numbers[index - 1];
 				numbers[index - 1] = temp;
-				numbers[maxNumIndex]->ColorNumber(Color::Red);
-				numbers[index - 1]->ColorNumber(Color::Lime);
+				numbers[maxNumIndex]->SetColor(Color::Red);
+				numbers[index - 1]->SetColor(Color::Lime);
 				StartSwap(numbers[maxNumIndex], numbers[index - 1]);
 			}
 			index--;
@@ -421,44 +528,52 @@ namespace Sort {
 				CurrentSortState = SortState::Sorted;
 			}
 		}
-		void buttonSortStep_Click(System::Object^ sender, System::EventArgs^ e) 
+
+		void SortStep()
 		{
 			switch (CurrentSortState)
 			{
-				case SortState::Unsorted:
-					switch (CurrentSortType)
-					{
-						case SortType::BubbleSort:
-							index = 0;
-							BubbleSortStep();
-							break;
-						case SortType::InsertionSort:
-							index = numbers->Length;
-							InsertionSortStep();
-							break;
-						case SortType::SelectionSort:
-							index = numbers->Length;
-							SelectionSortStep();
-							break;
-					}
-					CurrentSortState = SortState::Sorting;
+			case SortState::Unsorted:
+				switch (CurrentSortType)
+				{
+				case SortType::BubbleSort:
+					index = 0;
+					BubbleSortStep();
 					break;
-				case SortState::Sorting:
-					switch (CurrentSortType)
-					{
-						case SortType::BubbleSort:
-							BubbleSortStep();
-							break;
-						case SortType::InsertionSort:
-							InsertionSortStep();
-							break;
-						case SortType::SelectionSort:
-							SelectionSortStep();
-							break;
-					}
+				case SortType::InsertionSort:
+					index = 1;
+					InsertionSortStep();
 					break;
+				case SortType::SelectionSort:
+					index = numbers->Length;
+					SelectionSortStep();
+					break;
+				}
+				CurrentSortState = SortState::Sorting;
+				break;
+			case SortState::Sorting:
+				switch (CurrentSortType)
+				{
+				case SortType::BubbleSort:
+					BubbleSortStep();
+					break;
+				case SortType::InsertionSort:
+					InsertionSortStep();
+					break;
+				case SortType::SelectionSort:
+					SelectionSortStep();
+					break;
+				}
+				break;
 			}
 			labelIndex->Text = "Current index: " + index.ToString();
+			MoveTimer->Enabled = true;
+		}
+
+
+		void buttonSortStep_Click(System::Object^ sender, System::EventArgs^ e) 
+		{
+			SortStep();
 		}
 
 		void listBox1_SelectedIndexChanged(System::Object^ sender, System::EventArgs^ e) 
@@ -477,5 +592,12 @@ namespace Sort {
 			}
 			CurrentSortState = SortState::Unsorted;
 		}
+	private: System::Void button2_Click(System::Object^ sender, System::EventArgs^ e) 
+	{
+		autoSorting = true;
+		MoveTimer->Enabled = true;
+		buttonAutoSort->Enabled = false;
+		buttonSortStep->Enabled = false;
+	}
 };
 }
